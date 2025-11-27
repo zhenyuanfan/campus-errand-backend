@@ -34,9 +34,24 @@ public class LoginUserVO implements Serializable {
     private String userProfile;
 
     /**
-     * 用户角色：user/admin
+     * 用户角色：user/admin/publisher/runner
      */
     private String userRole;
+
+    /**
+     * 联系方式
+     */
+    private String contactInfo;
+
+    /**
+     * 信誉评分
+     */
+    private Double creditScore;
+
+    /**
+     * 接单数量（跑腿人员）
+     */
+    private Integer orderCount;
 
     /**
      * 创建时间

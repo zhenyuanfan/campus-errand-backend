@@ -53,6 +53,16 @@ public class AuthInterceptor {
         if (UserRoleEnum.ADMIN.equals(mustRoleEnum) && !UserRoleEnum.ADMIN.equals(userRoleEnum)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+        // 要求必须有发布者权限，但用户不是管理员或发布者，拒绝
+        if (UserRoleEnum.PUBLISHER.equals(mustRoleEnum) && 
+            !(UserRoleEnum.ADMIN.equals(userRoleEnum) || UserRoleEnum.PUBLISHER.equals(userRoleEnum))) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        // 要求必须有跑腿人员权限，但用户不是管理员或跑腿人员，拒绝
+        if (UserRoleEnum.RUNNER.equals(mustRoleEnum) && 
+            !(UserRoleEnum.ADMIN.equals(userRoleEnum) || UserRoleEnum.RUNNER.equals(userRoleEnum))) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
         // 通过权限校验，放行
         return joinPoint.proceed();
     }

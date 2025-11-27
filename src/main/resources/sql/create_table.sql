@@ -15,3 +15,11 @@ create table if not exists user
     UNIQUE KEY uk_userAccount (userAccount),
     INDEX idx_userName (userName)
     ) comment '用户' collate = utf8mb4_unicode_ci;
+-- 更新用户表结构，添加跑腿业务相关字段
+ALTER TABLE user ADD COLUMN contactInfo VARCHAR(255) COMMENT '联系方式';
+ALTER TABLE user ADD COLUMN creditScore DOUBLE DEFAULT 100.0 COMMENT '信誉评分';
+ALTER TABLE user ADD COLUMN orderCount INT DEFAULT 0 COMMENT '接单数量';
+
+-- 添加索引以提高查询性能
+CREATE INDEX idx_user_role ON user(userRole);
+CREATE INDEX idx_credit_score ON user(creditScore);

@@ -29,7 +29,7 @@ import static com.yuan.campuserrandbackend.constant.UserConstant.USER_LOGIN_STAT
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     implements UserService{
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String userRole) {
         // 1. 校验
         if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -43,6 +43,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
         }
+        
+        // 校验用户角色
+        UserRoleEnum userRoleEnum = UserRoleEnum.getEnumByValue(userRole);
+        if (userRoleEnum == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户角色不合法");
+        }
+        
         // 2. 检查是否重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userAccount", userAccount);
@@ -57,7 +64,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
         user.setUserName("无名");
-        user.setUserRole(UserRoleEnum.USER.getValue());
+        user.setUserRole(userRole); // 使用传入的用户角色
+        // 设置默认值
+        user.setCreditScore(100.0); // 默认信誉分100
+        user.setOrderCount(0); // 初始接单数为0
+        
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
