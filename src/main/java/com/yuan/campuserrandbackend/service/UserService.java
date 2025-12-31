@@ -19,9 +19,10 @@ public interface UserService extends IService<User> {
      * @param userPassword  用户密码
      * @param checkPassword 校验密码
      * @param userRole      用户角色
+     * @param contactInfo   联系方式（如手机号）
      * @return 新用户 id
      */
-    long userRegister(String userAccount, String userPassword, String checkPassword, String userRole);
+    long userRegister(String userAccount, String userPassword, String checkPassword, String userRole, String contactInfo);
     
     /**
      * 用户登录
@@ -57,4 +58,23 @@ public interface UserService extends IService<User> {
     boolean userLogout(HttpServletRequest request);
 
     String getEncryptPassword(String userPassword);
+
+    /**
+     * 发送手机验证码（模拟）
+     *
+     * @param phone   手机号
+     * @param request 请求
+     * @return 是否发送成功
+     */
+    boolean sendSmsCode(String phone, HttpServletRequest request);
+
+    /**
+     * 手机验证码登录
+     *
+     * @param phone   手机号
+     * @param code    验证码
+     * @param request 请求
+     * @return 登录用户
+     */
+    LoginUserVO smsLogin(String phone, String code, HttpServletRequest request);
 }

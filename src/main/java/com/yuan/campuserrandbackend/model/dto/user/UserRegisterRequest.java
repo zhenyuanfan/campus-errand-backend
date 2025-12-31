@@ -15,6 +15,11 @@ public class UserRegisterRequest implements Serializable {
     private String userAccount;
 
     /**
+     * 联系方式（手机号 / 微信号等）
+     */
+    private String contactInfo;
+
+    /**
      * 密码
      */
     private String userPassword;

@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 配置文件（包含敏感信息）###
+src/main/resources/application.yml

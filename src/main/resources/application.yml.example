@@ -1,0 +1,46 @@
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+spring:
+  application:
+    name: campus-errand-backend
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/campus
+    username: root
+    password: YOUR_DATABASE_PASSWORD
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false
+    # 仅在开发环境开启日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
+      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
+      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
+# 接口文档配置
+knife4j:
+  enable: true
+  openapi:
+    title: '接口文档'
+    version: 1.0
+    group:
+      default:
+        api-rule: package
+        api-rule-resources:
+          - com.yuan.campuserrandbackend.controller
+
+# 阿里云短信配置（请填写你自己的参数）
+aliyun:
+  sms:
+    # 在阿里云控制台获取的 AccessKeyId / AccessKeySecret（建议使用子账号）
+    access-key-id: YOUR_ACCESS_KEY_ID
+    access-key-secret: YOUR_ACCESS_KEY_SECRET
+    # 短信签名名称，例如：校园跑腿
+    sign-name: YOUR_SIGN_NAME
+    # 短信模板 CODE，例如：SMS_123456789
+    template-code: YOUR_TEMPLATE_CODE
+

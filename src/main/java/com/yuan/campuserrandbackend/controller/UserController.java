@@ -8,6 +8,8 @@ import com.yuan.campuserrandbackend.model.dto.user.UserLoginRequest;
 import com.yuan.campuserrandbackend.model.dto.user.UserRegisterRequest;
 import com.yuan.campuserrandbackend.model.entity.User;
 import com.yuan.campuserrandbackend.model.vo.LoginUserVO;
+import com.yuan.campuserrandbackend.model.dto.user.UserSmsCodeRequest;
+import com.yuan.campuserrandbackend.model.dto.user.UserSmsLoginRequest;
 import com.yuan.campuserrandbackend.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,13 +33,14 @@ public class UserController {
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
         String userRole = userRegisterRequest.getUserRole();
+        String contactInfo = userRegisterRequest.getContactInfo();
         
         // 如果没有指定角色，默认为普通用户
         if (userRole == null || userRole.isEmpty()) {
             userRole = "user";
         }
         
-        long result = userService.userRegister(userAccount, userPassword, checkPassword, userRole);
+        long result = userService.userRegister(userAccount, userPassword, checkPassword, userRole, contactInfo);
         return ResultUtils.success(result);
     }
     
@@ -49,7 +52,27 @@ public class UserController {
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(loginUserVO);
     }
-    
+
+    /**
+     * 发送短信验证码（模拟）
+     */
+    @PostMapping("/sendSmsCode")
+    public BaseResponse<Boolean> sendSmsCode(@RequestBody UserSmsCodeRequest smsCodeRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(smsCodeRequest == null, ErrorCode.PARAMS_ERROR);
+        boolean result = userService.sendSmsCode(smsCodeRequest.getPhone(), request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 短信验证码登录
+     */
+    @PostMapping("/login/sms")
+    public BaseResponse<LoginUserVO> smsLogin(@RequestBody UserSmsLoginRequest smsLoginRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(smsLoginRequest == null, ErrorCode.PARAMS_ERROR);
+        LoginUserVO loginUserVO = userService.smsLogin(smsLoginRequest.getPhone(), smsLoginRequest.getCode(), request);
+        return ResultUtils.success(loginUserVO);
+    }
+
     @GetMapping("/get/login")
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
