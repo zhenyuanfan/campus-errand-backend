@@ -77,4 +77,8 @@ public interface UserService extends IService<User> {
      * @return 登录用户
      */
     LoginUserVO smsLogin(String phone, String code, HttpServletRequest request);
+
+    String uploadAvatar(org.springframework.web.multipart.MultipartFile multipartFile, HttpServletRequest request);
+
+    boolean bindPhone(String phone, String code, HttpServletRequest request);
 }

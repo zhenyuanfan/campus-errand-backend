@@ -14,6 +14,7 @@ import com.yuan.campuserrandbackend.exception.ErrorCode;
 import com.yuan.campuserrandbackend.mapper.UserMapper;
 import com.yuan.campuserrandbackend.model.entity.User;
 import com.yuan.campuserrandbackend.model.enums.UserRoleEnum;
+import com.yuan.campuserrandbackend.manager.CosManager;
 import com.yuan.campuserrandbackend.model.vo.LoginUserVO;
 import com.yuan.campuserrandbackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +22,12 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
+import java.util.UUID;
 
 import static com.yuan.campuserrandbackend.constant.UserConstant.USER_LOGIN_STATE;
 
@@ -36,6 +40,9 @@ import static com.yuan.campuserrandbackend.constant.UserConstant.USER_LOGIN_STAT
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+    @Resource
+    private CosManager cosManager;
 
     @Value("${aliyun.sms.access-key-id}")
     private String accessKeyId;
@@ -299,6 +306,65 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     /**
      * 存储在 Session 中的短信验证码
      */
+    @Override
+    public String uploadAvatar(MultipartFile multipartFile, HttpServletRequest request) {
+        if (multipartFile == null || multipartFile.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件不能为空");
+        }
+        User loginUser = this.getLoginUser(request);
+
+        String originalFilename = multipartFile.getOriginalFilename();
+        String ext = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String key = "avatar/" + loginUser.getId() + "/" + UUID.randomUUID() + ext;
+
+        try {
+            String url = cosManager.upload(multipartFile.getInputStream(), multipartFile.getSize(), multipartFile.getContentType(), key);
+            User update = new User();
+            update.setId(loginUser.getId());
+            update.setUserAvatar(url);
+            boolean result = this.updateById(update);
+            if (!result) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新头像失败");
+            }
+            return url;
+        } catch (Exception e) {
+            log.error("uploadAvatar error", e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传头像失败：" + e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean bindPhone(String phone, String code, HttpServletRequest request) {
+        if (StrUtil.hasBlank(phone, code)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号或验证码不能为空");
+        }
+        User loginUser = this.getLoginUser(request);
+        Object obj = request.getSession().getAttribute(SMS_CODE_KEY_PREFIX + phone);
+        if (!(obj instanceof SmsCode)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码不存在，请先获取验证码");
+        }
+        SmsCode smsCode = (SmsCode) obj;
+        long now = System.currentTimeMillis();
+        if (now > smsCode.getExpireTime()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码已过期，请重新获取");
+        }
+        if (!code.equals(smsCode.getCode())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "验证码错误");
+        }
+        request.getSession().removeAttribute(SMS_CODE_KEY_PREFIX + phone);
+
+        User update = new User();
+        update.setId(loginUser.getId());
+        update.setContactInfo(phone);
+        return this.updateById(update);
+    }
+
+    /**
+     * 存储在 Session 中的短信验证码
+     */
     private static class SmsCode implements Serializable {
         private final String code;
         private final long expireTime;
@@ -318,7 +384,4 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
 }
-
-
-
 

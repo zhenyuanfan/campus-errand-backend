@@ -5,6 +5,10 @@ server:
 spring:
   application:
     name: campus-errand-backend
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   # 数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -43,4 +47,16 @@ aliyun:
     sign-name: YOUR_SIGN_NAME
     # 短信模板 CODE，例如：SMS_123456789
     template-code: YOUR_TEMPLATE_CODE
+
+# 腾讯云 COS 配置
+# 注意：secretId/secretKey 建议用环境变量，不要提交到仓库
+tencent:
+  cos:
+    secret-id:
+    secret-key:
+    region: ap-beijing
+    bucket: yuan-1374228028
+    # 访问域名（可填默认域名或自定义域名），不填则使用默认域名拼接
+    domain:
+    avatar-prefix: avatar/
 
