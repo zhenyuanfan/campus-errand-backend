@@ -74,3 +74,22 @@ create table if not exists task
     index idx_status (status),
     index idx_createTime (createTime)
 ) comment '跑腿任务' collate = utf8mb4_unicode_ci;
+
+-- 任务评价表
+create table if not exists task_review
+(
+    id           bigint auto_increment comment 'id' primary key,
+    taskId       bigint                                  not null comment '任务id',
+    reviewerId   bigint                                  not null comment '评价者id（发布者）',
+    runnerId     bigint                                  not null comment '被评价者id（跑腿人员）',
+    score        int                                     not null comment '评分（1-5分）',
+    content      varchar(512)                            null comment '评价内容',
+    tags         varchar(256)                            null comment '评价标签（如：速度快、态度好、准时送达等，逗号分隔）',
+    createTime   datetime     default CURRENT_TIMESTAMP  not null comment '创建时间',
+    updateTime   datetime     default CURRENT_TIMESTAMP  not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete     tinyint      default 0                  not null comment '是否删除',
+    index idx_taskId (taskId),
+    index idx_reviewerId (reviewerId),
+    index idx_runnerId (runnerId),
+    index idx_score (score)
+) comment '任务评价' collate = utf8mb4_unicode_ci;

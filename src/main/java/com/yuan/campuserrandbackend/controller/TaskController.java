@@ -8,11 +8,15 @@ import com.yuan.campuserrandbackend.exception.ErrorCode;
 import com.yuan.campuserrandbackend.exception.ThrowUtils;
 import com.yuan.campuserrandbackend.model.dto.task.TaskAddRequest;
 import com.yuan.campuserrandbackend.model.dto.task.TaskQueryRequest;
+import com.yuan.campuserrandbackend.model.dto.task.TaskReviewAddRequest;
 import com.yuan.campuserrandbackend.model.dto.task.TaskUpdateRequest;
 import com.yuan.campuserrandbackend.model.entity.Task;
 import com.yuan.campuserrandbackend.model.entity.User;
+import com.yuan.campuserrandbackend.model.vo.RunnerVO;
+import com.yuan.campuserrandbackend.model.vo.TaskReviewVO;
 import com.yuan.campuserrandbackend.model.vo.TaskVO;
 import com.yuan.campuserrandbackend.service.OperationLogService;
+import com.yuan.campuserrandbackend.service.TaskReviewService;
 import com.yuan.campuserrandbackend.service.TaskService;
 import com.yuan.campuserrandbackend.service.UserService;
 import org.springframework.web.bind.annotation.*;
@@ -134,5 +138,51 @@ public class TaskController {
         Page<Task> taskPage = taskService.page(new Page<>(current, size),
                 taskService.getQueryWrapper(taskQueryRequest));
         return ResultUtils.success(taskService.getTaskVOPage(taskPage));
+    }
+
+    @Resource
+    private TaskReviewService taskReviewService;
+
+    /**
+     * 评价任务
+     */
+    @PostMapping("/review/add")
+    public BaseResponse<Long> addTaskReview(@RequestBody TaskReviewAddRequest taskReviewAddRequest,
+            HttpServletRequest request) {
+        ThrowUtils.throwIf(taskReviewAddRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        long reviewId = taskReviewService.addTaskReview(taskReviewAddRequest, request);
+        operationLogService.addLog(loginUser.getId(), "REVIEW_TASK", "评价任务，任务ID: " + taskReviewAddRequest.getTaskId());
+        return ResultUtils.success(reviewId);
+    }
+
+    /**
+     * 获取任务的评价列表
+     */
+    @GetMapping("/review/list")
+    public BaseResponse<java.util.List<TaskReviewVO>> getTaskReviewList(long taskId) {
+        ThrowUtils.throwIf(taskId <= 0, ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(taskReviewService.getTaskReviewList(taskId));
+    }
+
+    /**
+     * 获取跑腿人员信息
+     */
+    @GetMapping("/runner/get/vo")
+    public BaseResponse<RunnerVO> getRunnerVO(long runnerId) {
+        ThrowUtils.throwIf(runnerId <= 0, ErrorCode.PARAMS_ERROR);
+        RunnerVO runnerVO = taskReviewService.getRunnerVO(runnerId);
+        ThrowUtils.throwIf(runnerVO == null, ErrorCode.NOT_FOUND_ERROR, "跑腿人员不存在");
+        return ResultUtils.success(runnerVO);
+    }
+
+    /**
+     * 获取跑腿人员的评价列表（分页）
+     */
+    @GetMapping("/runner/review/page")
+    public BaseResponse<Page<TaskReviewVO>> getRunnerReviewPage(long runnerId, long current, long size) {
+        ThrowUtils.throwIf(runnerId <= 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR, "每页数量不能超过20");
+        return ResultUtils.success(taskReviewService.getRunnerReviewPage(runnerId, current, size));
     }
 }
