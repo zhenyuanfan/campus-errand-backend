@@ -48,3 +48,29 @@ create table if not exists message
     isDelete    tinyint  default 0                 not null comment '是否删除',
     index idx_userId (userId)
 ) comment '通知消息' collate = utf8mb4_unicode_ci;
+
+-- 跑腿任务表
+create table if not exists task
+(
+    id             bigint auto_increment comment 'id' primary key,
+    publisherId    bigint                                  not null comment '发布者id',
+    runnerId       bigint                                  null comment '接单者id',
+    taskType       varchar(64)                             not null comment '任务类型：file_delivery-文件传递/goods_purchase-物品采购/food_delivery-餐饮配送/other-其他',
+    title          varchar(256)                            not null comment '任务标题',
+    description    text                                    null comment '任务描述',
+    startLocation  varchar(512)                            not null comment '起始地点',
+    endLocation    varchar(512)                            not null comment '目的地',
+    expectedTime   datetime                                not null comment '期望完成时间',
+    reward         decimal(10, 2)                          not null comment '报酬金额',
+    status         varchar(64)  default 'pending'          not null comment '任务状态：pending-待接单/accepted-已接单/in_progress-进行中/completed-已完成/cancelled-已取消',
+    contactInfo    varchar(255)                            not null comment '联系方式',
+    remark         varchar(1024)                           null comment '备注',
+    createTime     datetime     default CURRENT_TIMESTAMP  not null comment '创建时间',
+    updateTime     datetime     default CURRENT_TIMESTAMP  not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete       tinyint      default 0                  not null comment '是否删除',
+    index idx_publisherId (publisherId),
+    index idx_runnerId (runnerId),
+    index idx_taskType (taskType),
+    index idx_status (status),
+    index idx_createTime (createTime)
+) comment '跑腿任务' collate = utf8mb4_unicode_ci;
