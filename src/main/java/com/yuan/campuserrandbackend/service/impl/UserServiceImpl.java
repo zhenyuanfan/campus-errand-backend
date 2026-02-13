@@ -67,7 +67,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     private static final long SMS_CODE_EXPIRE_MILLIS = 5 * 60 * 1000L;
 
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword, String userRole, String contactInfo) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword, String userRole,
+            String contactInfo) {
         // 1. 校验
         if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -80,6 +81,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         if (!userPassword.equals(checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
+        }
+
+        // 校验联系方式（手机号格式）
+        if (StrUtil.isNotBlank(contactInfo)) {
+            if (!contactInfo.matches("^1[3-9]\\d{9}$")) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号格式不正确");
+            }
         }
 
         // 校验用户角色
@@ -221,23 +229,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             // 模板100001需要两个参数：code（验证码）和min（有效期分钟数）
             int expireMinutes = (int) (SMS_CODE_EXPIRE_MILLIS / (60 * 1000)); // 转换为分钟
             String templateParam = "{\"code\":\"" + code + "\",\"min\":\"" + expireMinutes + "\"}";
-            
+
             SendSmsVerifyCodeRequest sendSmsVerifyCodeRequest = new SendSmsVerifyCodeRequest()
                     .setPhoneNumber(phone)
                     .setSignName(signName)
                     .setTemplateCode(templateCode)
                     .setTemplateParam(templateParam);
-            
+
             // 记录发送的参数（用于调试对比）
-            log.info("SendSmsVerifyCode params: SignName={}, TemplateCode={}, PhoneNumber={}, TemplateParam={}", 
+            log.info("SendSmsVerifyCode params: SignName={}, TemplateCode={}, PhoneNumber={}, TemplateParam={}",
                     signName, templateCode, phone, templateParam);
 
             // 使用sendSmsVerifyCodeWithOptions方法（按照官方示例）
             RuntimeOptions runtime = new RuntimeOptions();
-            SendSmsVerifyCodeResponse sendSmsVerifyCodeResponse = client.sendSmsVerifyCodeWithOptions(sendSmsVerifyCodeRequest, runtime);
+            SendSmsVerifyCodeResponse sendSmsVerifyCodeResponse = client
+                    .sendSmsVerifyCodeWithOptions(sendSmsVerifyCodeRequest, runtime);
             String respCode = sendSmsVerifyCodeResponse.getBody().getCode();
             String respMsg = sendSmsVerifyCodeResponse.getBody().getMessage();
-            log.info("Aliyun SMS send result, phone = {}, code = {}, respCode = {}, respMsg = {}", phone, code, respCode, respMsg);
+            log.info("Aliyun SMS send result, phone = {}, code = {}, respCode = {}, respMsg = {}", phone, code,
+                    respCode, respMsg);
 
             if (!"OK".equalsIgnoreCase(respCode)) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "短信发送失败：" + respMsg);
@@ -321,7 +331,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String key = "avatar/" + loginUser.getId() + "/" + UUID.randomUUID() + ext;
 
         try {
-            String url = cosManager.upload(multipartFile.getInputStream(), multipartFile.getSize(), multipartFile.getContentType(), key);
+            String url = cosManager.upload(multipartFile.getInputStream(), multipartFile.getSize(),
+                    multipartFile.getContentType(), key);
             User update = new User();
             update.setId(loginUser.getId());
             update.setUserAvatar(url);
@@ -384,4 +395,3 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
 }
-

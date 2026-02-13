@@ -132,9 +132,12 @@ public class OrderTrackingServiceImpl implements OrderTrackingService {
         long size = orderTrackingQueryRequest.getPageSize();
         String status = orderTrackingQueryRequest.getStatus();
 
-        // 构建查询条件：只查询当前用户发布的任务
+        // 构建查询条件：查询当前用户发布的或接单的任务
         QueryWrapper<Task> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("publisherId", loginUser.getId());
+        queryWrapper.and(w -> w
+                .eq("publisherId", loginUser.getId())
+                .or()
+                .eq("runnerId", loginUser.getId()));
 
         // 按状态筛选
         if (StrUtil.isNotBlank(status)) {
