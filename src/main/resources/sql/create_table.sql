@@ -107,3 +107,26 @@ create table if not exists review_reply
     index idx_reviewId (reviewId),
     index idx_replierId (replierId)
 ) comment '评价回复' collate = utf8mb4_unicode_ci;
+
+-- 用户反馈表
+create table if not exists feedback
+(
+    id          bigint auto_increment comment 'id' primary key,
+    userId      bigint                              not null comment '提交用户id',
+    type        varchar(64)                         not null comment '反馈类型：suggestion-建议/complaint-投诉/bug-Bug反馈/other-其他',
+    title       varchar(256)                        not null comment '反馈标题',
+    content     text                                not null comment '反馈内容',
+    contactInfo varchar(255)                        null comment '联系方式（可选）',
+    taskId      bigint                              null comment '关联任务id（可选）',
+    status      varchar(64) default 'pending'       not null comment '处理状态：pending-待处理/processing-处理中/resolved-已解决/rejected-已驳回',
+    adminId     bigint                              null comment '处理人id（管理员）',
+    adminReply  text                                null comment '管理员回复内容',
+    replyTime   datetime                            null comment '回复时间',
+    createTime  datetime default CURRENT_TIMESTAMP  not null comment '创建时间',
+    updateTime  datetime default CURRENT_TIMESTAMP  not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete    tinyint  default 0                  not null comment '是否删除',
+    index idx_userId (userId),
+    index idx_type (type),
+    index idx_status (status),
+    index idx_createTime (createTime)
+) comment '用户反馈' collate = utf8mb4_unicode_ci;
