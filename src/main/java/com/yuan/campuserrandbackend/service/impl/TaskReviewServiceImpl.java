@@ -7,13 +7,17 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuan.campuserrandbackend.exception.BusinessException;
 import com.yuan.campuserrandbackend.exception.ErrorCode;
 import com.yuan.campuserrandbackend.mapper.TaskReviewMapper;
+import com.yuan.campuserrandbackend.model.dto.review.ReviewQueryRequest;
 import com.yuan.campuserrandbackend.model.dto.task.TaskReviewAddRequest;
 import com.yuan.campuserrandbackend.model.entity.Task;
 import com.yuan.campuserrandbackend.model.entity.TaskReview;
 import com.yuan.campuserrandbackend.model.entity.User;
 import com.yuan.campuserrandbackend.model.enums.TaskStatusEnum;
+import com.yuan.campuserrandbackend.model.vo.ReviewReplyVO;
+import com.yuan.campuserrandbackend.model.vo.ReviewStatsVO;
 import com.yuan.campuserrandbackend.model.vo.RunnerVO;
 import com.yuan.campuserrandbackend.model.vo.TaskReviewVO;
+import com.yuan.campuserrandbackend.service.ReviewReplyService;
 import com.yuan.campuserrandbackend.service.TaskReviewService;
 import com.yuan.campuserrandbackend.service.TaskService;
 import com.yuan.campuserrandbackend.service.UserService;
@@ -23,8 +27,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -44,6 +47,10 @@ public class TaskReviewServiceImpl extends ServiceImpl<TaskReviewMapper, TaskRev
 
     @Resource
     private TaskReviewMapper taskReviewMapper;
+
+    @Resource
+    @Lazy
+    private ReviewReplyService reviewReplyService;
 
     @Override
     public long addTaskReview(TaskReviewAddRequest taskReviewAddRequest, HttpServletRequest request) {
@@ -135,6 +142,12 @@ public class TaskReviewServiceImpl extends ServiceImpl<TaskReviewMapper, TaskRev
         User runner = userService.getById(taskReview.getRunnerId());
         if (runner != null) {
             taskReviewVO.setRunnerName(runner.getUserName());
+        }
+
+        // 获取回复信息
+        List<ReviewReplyVO> replyList = reviewReplyService.getReplyList(taskReview.getId());
+        if (replyList != null && !replyList.isEmpty()) {
+            taskReviewVO.setReply(replyList.get(0));
         }
 
         return taskReviewVO;
@@ -236,5 +249,137 @@ public class TaskReviewServiceImpl extends ServiceImpl<TaskReviewMapper, TaskRev
         user.setId(runnerId);
         user.setCreditScore(creditScore);
         userService.updateById(user);
+    }
+
+    @Override
+    public Page<TaskReviewVO> listMyReviews(ReviewQueryRequest reviewQueryRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        long current = reviewQueryRequest.getCurrent();
+        long size = reviewQueryRequest.getPageSize();
+
+        QueryWrapper<TaskReview> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("reviewerId", loginUser.getId());
+
+        // 高级筛选
+        buildReviewQueryWrapper(queryWrapper, reviewQueryRequest);
+        queryWrapper.orderByDesc("createTime");
+
+        Page<TaskReview> taskReviewPage = this.page(new Page<>(current, size), queryWrapper);
+        return convertToVOPage(taskReviewPage, current, size);
+    }
+
+    @Override
+    public Page<TaskReviewVO> listReceivedReviews(ReviewQueryRequest reviewQueryRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        long current = reviewQueryRequest.getCurrent();
+        long size = reviewQueryRequest.getPageSize();
+
+        QueryWrapper<TaskReview> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("runnerId", loginUser.getId());
+
+        // 高级筛选
+        buildReviewQueryWrapper(queryWrapper, reviewQueryRequest);
+        queryWrapper.orderByDesc("createTime");
+
+        Page<TaskReview> taskReviewPage = this.page(new Page<>(current, size), queryWrapper);
+        return convertToVOPage(taskReviewPage, current, size);
+    }
+
+    @Override
+    public ReviewStatsVO getReviewStats(long runnerId) {
+        ReviewStatsVO statsVO = new ReviewStatsVO();
+
+        // 总评价数
+        Integer totalCount = taskReviewMapper.getReviewCountByRunnerId(runnerId);
+        statsVO.setTotalCount(totalCount != null ? totalCount : 0);
+
+        // 平均评分
+        Double avgScore = taskReviewMapper.getAvgScoreByRunnerId(runnerId);
+        statsVO.setAvgScore(avgScore != null ? Math.round(avgScore * 10) / 10.0 : 0.0);
+
+        // 评分分布
+        List<Map<String, Object>> distributionList = taskReviewMapper.getScoreDistribution(runnerId);
+        Map<Integer, Integer> scoreDistribution = new LinkedHashMap<>();
+        for (int i = 1; i <= 5; i++) {
+            scoreDistribution.put(i, 0);
+        }
+        if (distributionList != null) {
+            for (Map<String, Object> item : distributionList) {
+                Integer score = ((Number) item.get("score")).intValue();
+                Integer count = ((Number) item.get("count")).intValue();
+                scoreDistribution.put(score, count);
+            }
+        }
+        statsVO.setScoreDistribution(scoreDistribution);
+
+        // 高频评价标签
+        QueryWrapper<TaskReview> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("runnerId", runnerId);
+        queryWrapper.isNotNull("tags");
+        queryWrapper.ne("tags", "");
+        queryWrapper.select("tags");
+        List<TaskReview> reviewsWithTags = this.list(queryWrapper);
+
+        Map<String, Integer> tagCountMap = new HashMap<>();
+        for (TaskReview review : reviewsWithTags) {
+            String tags = review.getTags();
+            if (StrUtil.isNotBlank(tags)) {
+                String[] tagArray = tags.split(",");
+                for (String tag : tagArray) {
+                    String trimTag = tag.trim();
+                    if (!trimTag.isEmpty()) {
+                        tagCountMap.put(trimTag, tagCountMap.getOrDefault(trimTag, 0) + 1);
+                    }
+                }
+            }
+        }
+
+        List<String> topTags = tagCountMap.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(10)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+        statsVO.setTopTags(topTags);
+
+        return statsVO;
+    }
+
+    /**
+     * 构建评价查询条件
+     */
+    private void buildReviewQueryWrapper(QueryWrapper<TaskReview> queryWrapper, ReviewQueryRequest reviewQueryRequest) {
+        String keyword = reviewQueryRequest.getKeyword();
+        Integer minScore = reviewQueryRequest.getMinScore();
+        Integer maxScore = reviewQueryRequest.getMaxScore();
+        Date startTime = reviewQueryRequest.getStartTime();
+        Date endTime = reviewQueryRequest.getEndTime();
+
+        if (StrUtil.isNotBlank(keyword)) {
+            queryWrapper.like("content", keyword);
+        }
+        if (minScore != null) {
+            queryWrapper.ge("score", minScore);
+        }
+        if (maxScore != null) {
+            queryWrapper.le("score", maxScore);
+        }
+        if (startTime != null) {
+            queryWrapper.ge("createTime", startTime);
+        }
+        if (endTime != null) {
+            queryWrapper.le("createTime", endTime);
+        }
+    }
+
+    /**
+     * 转换分页数据为 VO 分页
+     */
+    private Page<TaskReviewVO> convertToVOPage(Page<TaskReview> taskReviewPage, long current, long size) {
+        Page<TaskReviewVO> taskReviewVOPage = new Page<>(current, size, taskReviewPage.getTotal());
+        List<TaskReviewVO> taskReviewVOList = taskReviewPage.getRecords().stream()
+                .map(this::getTaskReviewVO)
+                .collect(Collectors.toList());
+        taskReviewVOPage.setRecords(taskReviewVOList);
+        return taskReviewVOPage;
     }
 }

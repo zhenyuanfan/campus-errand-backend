@@ -93,3 +93,17 @@ create table if not exists task_review
     index idx_runnerId (runnerId),
     index idx_score (score)
 ) comment '任务评价' collate = utf8mb4_unicode_ci;
+
+-- 评价回复表
+create table if not exists review_reply
+(
+    id          bigint auto_increment comment 'id' primary key,
+    reviewId    bigint                              not null comment '评价id',
+    replierId   bigint                              not null comment '回复者id（跑腿人员）',
+    content     varchar(512)                        not null comment '回复内容',
+    createTime  datetime default CURRENT_TIMESTAMP  not null comment '创建时间',
+    updateTime  datetime default CURRENT_TIMESTAMP  not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete    tinyint  default 0                  not null comment '是否删除',
+    index idx_reviewId (reviewId),
+    index idx_replierId (replierId)
+) comment '评价回复' collate = utf8mb4_unicode_ci;

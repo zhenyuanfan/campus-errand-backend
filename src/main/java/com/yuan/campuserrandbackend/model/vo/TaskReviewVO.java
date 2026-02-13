@@ -70,4 +70,9 @@ public class TaskReviewVO implements Serializable {
      * 创建时间
      */
     private Date createTime;
+
+    /**
+     * 跑腿人员回复
+     */
+    private ReviewReplyVO reply;
 }

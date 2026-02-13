@@ -8,7 +8,6 @@ import com.yuan.campuserrandbackend.exception.ErrorCode;
 import com.yuan.campuserrandbackend.model.dto.order.OrderTrackingQueryRequest;
 import com.yuan.campuserrandbackend.model.entity.Task;
 import com.yuan.campuserrandbackend.model.entity.User;
-import com.yuan.campuserrandbackend.model.enums.DeliveryStatusEnum;
 import com.yuan.campuserrandbackend.model.enums.TaskStatusEnum;
 import com.yuan.campuserrandbackend.model.enums.TaskTypeEnum;
 import com.yuan.campuserrandbackend.model.vo.DeliveryTrackingVO;

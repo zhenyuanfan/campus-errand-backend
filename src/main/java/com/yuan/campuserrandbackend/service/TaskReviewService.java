@@ -2,8 +2,10 @@ package com.yuan.campuserrandbackend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.yuan.campuserrandbackend.model.dto.review.ReviewQueryRequest;
 import com.yuan.campuserrandbackend.model.dto.task.TaskReviewAddRequest;
 import com.yuan.campuserrandbackend.model.entity.TaskReview;
+import com.yuan.campuserrandbackend.model.vo.ReviewStatsVO;
 import com.yuan.campuserrandbackend.model.vo.RunnerVO;
 import com.yuan.campuserrandbackend.model.vo.TaskReviewVO;
 
@@ -65,4 +67,30 @@ public interface TaskReviewService extends IService<TaskReview> {
      * @param runnerId 跑腿人员id
      */
     void updateRunnerCreditScore(Long runnerId);
+
+    /**
+     * 查看我发出的评价列表
+     *
+     * @param reviewQueryRequest 查询请求
+     * @param request            HTTP请求
+     * @return 评价VO分页
+     */
+    Page<TaskReviewVO> listMyReviews(ReviewQueryRequest reviewQueryRequest, HttpServletRequest request);
+
+    /**
+     * 查看我收到的评价列表
+     *
+     * @param reviewQueryRequest 查询请求
+     * @param request            HTTP请求
+     * @return 评价VO分页
+     */
+    Page<TaskReviewVO> listReceivedReviews(ReviewQueryRequest reviewQueryRequest, HttpServletRequest request);
+
+    /**
+     * 获取跑腿人员评价统计
+     *
+     * @param runnerId 跑腿人员id
+     * @return 评价统计VO
+     */
+    ReviewStatsVO getReviewStats(long runnerId);
 }
