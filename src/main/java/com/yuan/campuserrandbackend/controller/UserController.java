@@ -1,20 +1,31 @@
 package com.yuan.campuserrandbackend.controller;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.yuan.campuserrandbackend.annotation.AuthCheck;
 import com.yuan.campuserrandbackend.common.BaseResponse;
+import com.yuan.campuserrandbackend.common.DeleteRequest;
 import com.yuan.campuserrandbackend.common.ResultUtils;
+import com.yuan.campuserrandbackend.exception.BusinessException;
 import com.yuan.campuserrandbackend.exception.ErrorCode;
 import com.yuan.campuserrandbackend.exception.ThrowUtils;
 import com.yuan.campuserrandbackend.model.dto.user.*;
 import com.yuan.campuserrandbackend.model.entity.User;
+import com.yuan.campuserrandbackend.model.enums.UserRoleEnum;
 import com.yuan.campuserrandbackend.model.vo.LoginUserVO;
 import com.yuan.campuserrandbackend.model.vo.UserAvatarUploadVO;
+import com.yuan.campuserrandbackend.model.vo.UserVO;
 import com.yuan.campuserrandbackend.service.OperationLogService;
 import com.yuan.campuserrandbackend.service.UserService;
+import cn.hutool.core.util.StrUtil;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/user")
@@ -135,6 +146,94 @@ public class UserController {
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR);
         boolean result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
+
+    // ==================== 管理员 - 用户管理 ====================
+
+    /**
+     * 管理员分页查询用户列表
+     */
+    @PostMapping("/admin/list")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Page<UserVO>> listUserByPage(@RequestBody UserQueryRequest userQueryRequest) {
+        ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        int current = userQueryRequest.getCurrent();
+        int pageSize = userQueryRequest.getPageSize();
+        // 限制每页最多50条
+        ThrowUtils.throwIf(pageSize > 50, ErrorCode.PARAMS_ERROR, "每页最多50条");
+
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        String userName = userQueryRequest.getUserName();
+        String userAccount = userQueryRequest.getUserAccount();
+        String userRole = userQueryRequest.getUserRole();
+        if (StrUtil.isNotBlank(userName)) {
+            queryWrapper.like("userName", userName);
+        }
+        if (StrUtil.isNotBlank(userAccount)) {
+            queryWrapper.like("userAccount", userAccount);
+        }
+        if (StrUtil.isNotBlank(userRole)) {
+            queryWrapper.eq("userRole", userRole);
+        }
+        queryWrapper.orderByDesc("createTime");
+
+        Page<User> userPage = userService.page(new Page<>(current, pageSize), queryWrapper);
+        // 转换为 VO（脱敏，不暴露密码）
+        Page<UserVO> voPage = new Page<>(userPage.getCurrent(), userPage.getSize(), userPage.getTotal());
+        List<UserVO> voList = userPage.getRecords().stream().map(user -> {
+            UserVO vo = new UserVO();
+            BeanUtil.copyProperties(user, vo);
+            return vo;
+        }).collect(Collectors.toList());
+        voPage.setRecords(voList);
+        return ResultUtils.success(voPage);
+    }
+
+    /**
+     * 管理员修改用户角色
+     */
+    @PostMapping("/admin/updateRole")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean> updateUserRole(@RequestBody UserRoleUpdateRequest request, HttpServletRequest httpRequest) {
+        ThrowUtils.throwIf(request == null || request.getId() == null, ErrorCode.PARAMS_ERROR);
+        String newRole = request.getUserRole();
+        // 校验角色合法性
+        UserRoleEnum roleEnum = UserRoleEnum.getEnumByValue(newRole);
+        ThrowUtils.throwIf(roleEnum == null, ErrorCode.PARAMS_ERROR, "角色不合法");
+        // 不能修改自己的角色
+        User loginUser = userService.getLoginUser(httpRequest);
+        if (loginUser.getId().equals(request.getId())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "不能修改自己的角色");
+        }
+        User user = new User();
+        user.setId(request.getId());
+        user.setUserRole(newRole);
+        boolean result = userService.updateById(user);
+        if (result) {
+            operationLogService.addLog(loginUser.getId(), "ADMIN_UPDATE_ROLE",
+                    "将用户" + request.getId() + "角色修改为" + newRole);
+        }
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 管理员删除用户（逻辑删除）
+     */
+    @PostMapping("/admin/delete")
+    @AuthCheck(mustRole = "admin")
+    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest httpRequest) {
+        ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(httpRequest);
+        // 不能删除自己
+        if (loginUser.getId().equals(deleteRequest.getId())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "不能删除自己");
+        }
+        boolean result = userService.removeById(deleteRequest.getId());
+        if (result) {
+            operationLogService.addLog(loginUser.getId(), "ADMIN_DELETE_USER",
+                    "删除用户: " + deleteRequest.getId());
+        }
         return ResultUtils.success(result);
     }
 }

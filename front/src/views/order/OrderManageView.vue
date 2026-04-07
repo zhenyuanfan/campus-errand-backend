@@ -97,8 +97,14 @@ const statusType = (s) => ({ pending: 'info', accepted: '', in_progress: 'warnin
 .tab-switch { display: flex; background: var(--color-bg-hover); border-radius: 980px; padding: 3px; margin-bottom: 20px; width: fit-content; }
 .tab-btn { padding: 8px 24px; border: none; background: none; border-radius: 980px; font-size: 14px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; transition: all var(--transition-fast); }
 .tab-btn.active { background: #fff; color: var(--color-primary); box-shadow: var(--shadow-sm); }
-.filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px 20px; }
+.filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px 20px; flex-wrap: wrap; }
 .link-text { cursor: pointer; color: var(--color-primary); font-weight: 500; }
 .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--color-border-light); font-size: 14px; }
 .detail-row span:first-child { color: var(--color-text-secondary); }
+
+@media (max-width: 768px) {
+  .filter-bar { padding: 12px 14px; gap: 8px; }
+  .filter-bar .el-input, .filter-bar .el-select { width: 100% !important; }
+  .el-table-wrapper, .el-table { overflow-x: auto; }
+}
 </style>

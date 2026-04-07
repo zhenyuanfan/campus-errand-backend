@@ -134,6 +134,11 @@ const handleBind = async () => {
 .profile-grid {
   display: grid; grid-template-columns: 280px 1fr; gap: 20px;
 }
+
+@media (max-width: 768px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .avatar-card { padding: 24px 16px; }
+}
 .avatar-card {
   text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px;
 }

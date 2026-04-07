@@ -42,6 +42,7 @@ const router = createRouter({
         { path: 'feedback', name: 'feedback', component: () => import('@/views/feedback/FeedbackView.vue') },
         // 管理员
         { path: 'admin/dashboard', name: 'adminDashboard', component: () => import('@/views/admin/DashboardView.vue'), meta: { admin: true } },
+        { path: 'admin/users', name: 'adminUsers', component: () => import('@/views/admin/AdminUserView.vue'), meta: { admin: true } },
         { path: 'admin/feedback', name: 'adminFeedback', component: () => import('@/views/admin/AdminFeedbackView.vue'), meta: { admin: true } }
       ]
     }

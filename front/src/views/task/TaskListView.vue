@@ -88,4 +88,10 @@ const statusType = (s) => ({ pending: 'info', accepted: '', in_progress: 'warnin
 .task-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--color-border-light); }
 .task-publisher { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-secondary); }
 .task-reward { font-size: 20px; font-weight: 700; color: var(--color-primary); }
+
+@media (max-width: 768px) {
+  .filter-bar { padding: 12px 14px; gap: 8px; }
+  .filter-bar .el-input, .filter-bar .el-select { width: 100% !important; }
+  .task-grid { grid-template-columns: 1fr; gap: 12px; }
+}
 </style>

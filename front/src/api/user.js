@@ -32,3 +32,14 @@ export const uploadAvatar = (file) => {
 
 // 绑定手机号
 export const bindPhone = (data) => request.post('/user/bind/phone', data)
+
+// ==================== 管理员 - 用户管理 ====================
+
+// 管理员分页查询用户列表
+export const adminListUser = (data) => request.post('/user/admin/list', data)
+
+// 管理员修改用户角色
+export const adminUpdateUserRole = (data) => request.post('/user/admin/updateRole', data)
+
+// 管理员删除用户
+export const adminDeleteUser = (data) => request.post('/user/admin/delete', data)

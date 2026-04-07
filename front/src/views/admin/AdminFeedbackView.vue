@@ -109,7 +109,12 @@ const handleReply = async () => {
 </script>
 
 <style scoped>
-.filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px 20px; }
+.filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px 20px; flex-wrap: wrap; }
 .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-light); font-size: 14px; }
 .detail-row span:first-child { color: var(--color-text-secondary); min-width: 60px; }
+
+@media (max-width: 768px) {
+  .filter-bar { padding: 12px 14px; gap: 8px; }
+  .filter-bar .el-select { width: 100% !important; }
+}
 </style>

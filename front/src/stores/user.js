@@ -7,9 +7,7 @@ export const useUserStore = defineStore('user', () => {
 
     const isLoggedIn = computed(() => !!loginUser.value)
     const isAdmin = computed(() => loginUser.value?.userRole === 'admin')
-    const isRunner = computed(() =>
-        loginUser.value?.userRole === 'runner' || loginUser.value?.userRole === 'admin'
-    )
+    const isRunner = computed(() => loginUser.value?.userRole === 'runner')
 
     async function fetchLoginUser() {
         try {

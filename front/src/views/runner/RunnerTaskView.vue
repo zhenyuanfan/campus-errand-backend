@@ -78,7 +78,7 @@ const handleAccept = async (taskId) => {
 </script>
 
 <style scoped>
-.filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; padding: 16px 20px; }
+.filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; padding: 16px 20px; flex-wrap: wrap; }
 .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
 .task-card { padding: 20px; transition: all var(--transition-normal); }
 .task-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
@@ -90,4 +90,10 @@ const handleAccept = async (taskId) => {
 .task-info span { display: flex; align-items: center; gap: 4px; }
 .task-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--color-border-light); }
 .task-publisher { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-secondary); }
+
+@media (max-width: 768px) {
+  .filter-bar { padding: 12px 14px; gap: 8px; }
+  .filter-bar .el-select { width: 100% !important; }
+  .task-grid { grid-template-columns: 1fr; gap: 12px; }
+}
 </style>

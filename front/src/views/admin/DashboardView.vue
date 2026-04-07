@@ -164,4 +164,12 @@ onMounted(async () => {
 .chart-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
 .chart-card.wide { grid-column: span 2; }
 .chart-box { width: 100%; height: 300px; }
+
+@media (max-width: 768px) {
+  .stat-cards { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { padding: 16px 10px; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .chart-card.wide { grid-column: span 1; }
+  .chart-box { height: 220px; }
+}
 </style>

@@ -169,6 +169,13 @@ const handleSendCode = async () => {
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+@media (max-width: 480px) {
+  .login-card {
+    width: calc(100vw - 32px);
+    padding: 32px 24px;
+  }
+}
+
 .login-header {
   text-align: center;
   margin-bottom: 36px;
