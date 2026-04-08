@@ -48,8 +48,9 @@
     <!-- 提交评价弹窗 -->
     <el-dialog v-model="showAdd" title="提交评价" width="500px">
       <el-form :model="addForm" label-position="top">
-        <el-form-item label="任务ID">
-          <el-input-number v-model="addForm.taskId" :min="1" style="width: 100%" />
+        <el-form-item label="任务">
+          <el-input :model-value="addForm.taskId ? `任务 #${addForm.taskId}` : ''" disabled v-if="addForm.taskId" />
+          <el-input-number v-else v-model="addForm.taskId" :min="1" style="width: 100%" placeholder="输入任务ID" />
         </el-form-item>
         <el-form-item label="评分">
           <el-rate v-model="addForm.score" show-score text-color="#ff9f0a" />
@@ -75,8 +76,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { listMyReviews, listReceivedReviews, addReview, addReviewReply } from '@/api/review'
 import { ElMessage } from 'element-plus'
+
+const route = useRoute()
 
 const tab = ref('my')
 const query = ref({ current: 1, pageSize: 10 })
@@ -94,7 +98,14 @@ const loadData = async () => {
   reviews.value = res.records || []
   total.value = res.total || 0
 }
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  // 从订单详情跳过来时自动打开写评价弹窗
+  if (route.query.taskId) {
+    addForm.value.taskId = Number(route.query.taskId)
+    showAdd.value = true
+  }
+})
 
 const handleAddReview = async () => {
   submitting.value = true

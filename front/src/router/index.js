@@ -34,8 +34,8 @@ const router = createRouter({
         // 配送跟踪
         { path: 'delivery/:taskId', name: 'deliveryTracking', component: () => import('@/views/delivery/DeliveryTrackingView.vue') },
         // 订单
-        { path: 'orders', name: 'orders', component: () => import('@/views/order/OrderTrackingView.vue') },
-        { path: 'orders/manage', name: 'orderManage', component: () => import('@/views/order/OrderManageView.vue') },
+        { path: 'orders', name: 'orders', component: () => import('@/views/order/OrderManageView.vue') },
+        { path: 'orders/tracking', name: 'orderTracking', component: () => import('@/views/order/OrderTrackingView.vue') },
         // 评价
         { path: 'reviews', name: 'reviews', component: () => import('@/views/review/ReviewView.vue') },
         // 反馈

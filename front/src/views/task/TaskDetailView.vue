@@ -86,16 +86,23 @@ const statusType = (s) => ({ pending: 'info', accepted: '', in_progress: 'warnin
 
 <style scoped>
 .detail-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
-.detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
 .detail-reward { font-size: 28px; font-weight: 700; color: var(--color-primary); }
 .detail-title { font-size: 24px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em; }
 .detail-desc { font-size: 15px; color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 24px; }
 .detail-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
 .info-item { display: flex; flex-direction: column; gap: 4px; }
 .info-label { font-size: 12px; color: var(--color-text-tertiary); text-transform: uppercase; }
-.detail-actions { display: flex; gap: 12px; padding-top: 20px; border-top: 1px solid var(--color-border-light); }
+.detail-actions { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 20px; border-top: 1px solid var(--color-border-light); }
 .side-cards { display: flex; flex-direction: column; gap: 16px; }
 .card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
 .user-info { display: flex; gap: 12px; align-items: center; }
 .user-name { font-size: 15px; font-weight: 600; }
+
+@media (max-width: 768px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .detail-reward { font-size: 22px; }
+  .detail-title { font-size: 20px; }
+  .detail-info-grid { grid-template-columns: 1fr; gap: 12px; }
+}
 </style>
