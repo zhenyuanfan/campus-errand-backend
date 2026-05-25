@@ -92,6 +92,21 @@ public class FeedbackVO implements Serializable {
     private String adminReply;
 
     /**
+     * 接单员申诉内容
+     */
+    private String runnerAppeal;
+
+    /**
+     * 申诉时间
+     */
+    private Date appealTime;
+
+    /**
+     * 被投诉接单员名称
+     */
+    private String runnerName;
+
+    /**
      * 回复时间
      */
     private Date replyTime;

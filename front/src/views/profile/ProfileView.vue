@@ -59,6 +59,10 @@
         <h3 class="card-title">账户信息</h3>
         <div class="info-row"><span>账号</span><span>{{ userStore.loginUser?.userAccount }}</span></div>
         <div class="info-row"><span>角色</span><span>{{ roleText }}</span></div>
+        <div class="info-row">
+          <span>💰 账户余额</span>
+          <span class="stat-number" style="font-size:20px; color: var(--color-primary)">¥{{ userStore.loginUser?.balance ?? '1000.00' }}</span>
+        </div>
         <div class="info-row"><span>信誉评分</span><span class="stat-number" style="font-size:20px">{{ userStore.loginUser?.creditScore || 100 }}</span></div>
         <div class="info-row"><span>接单数量</span><span>{{ userStore.loginUser?.orderCount || 0 }}</span></div>
         <div class="info-row"><span>注册时间</span><span>{{ userStore.loginUser?.createTime }}</span></div>

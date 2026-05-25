@@ -292,6 +292,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 根据手机号查找用户，这里采用 contactInfo 作为手机号存储字段
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("contactInfo", phone);
+        queryWrapper.last("limit 1");
         User user = this.baseMapper.selectOne(queryWrapper);
         // 如果用户不存在，则自动注册一个新用户（方便体验）
         if (user == null) {

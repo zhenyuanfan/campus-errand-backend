@@ -40,7 +40,7 @@
 
     <!-- 普通用户快捷操作 -->
     <div v-else class="quick-actions">
-      <div class="action-card apple-card" @click="$router.push('/task/publish')">
+      <div v-if="userStore.isPublisher" class="action-card apple-card" @click="$router.push('/task/publish')">
         <div class="action-icon" style="background: rgba(0, 113, 227, 0.1);">
           <el-icon :size="28" color="#0071e3"><Edit /></el-icon>
         </div>
@@ -70,8 +70,8 @@
       </div>
     </div>
 
-    <!-- 我发布的最近任务（仅普通用户显示） -->
-    <div v-if="!userStore.isAdmin" class="section">
+    <!-- 我发布的最近任务（仅发布员/普通用户显示，接单员和管理员不显示） -->
+    <div v-if="userStore.isPublisher" class="section">
       <div class="section-header">
         <h2>我发布的任务</h2>
         <el-button text type="primary" @click="$router.push('/task/list')">查看全部 →</el-button>
@@ -104,8 +104,8 @@ const userStore = useUserStore()
 const myTasks = ref([])
 
 onMounted(async () => {
-  // 管理员不需要加载"我发布的任务"
-  if (userStore.isAdmin) return
+  // 管理员和接单员不需要加载"我发布的任务"
+  if (userStore.isAdmin || userStore.isRunner) return
   try {
     const res = await listMyTaskVOByPage({ current: 1, pageSize: 6 })
     myTasks.value = res.records || []

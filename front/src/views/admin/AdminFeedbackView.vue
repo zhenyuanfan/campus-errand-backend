@@ -30,6 +30,15 @@
         <template #default="{ row }"><el-tag :type="statusMap(row.status)" round size="small">{{ row.statusText }}</el-tag></template>
       </el-table-column>
       <el-table-column prop="userName" label="用户" width="100" />
+      <el-table-column label="接单员" width="100">
+        <template #default="{ row }">{{ row.runnerName || '-' }}</template>
+      </el-table-column>
+      <el-table-column label="申诉" width="70">
+        <template #default="{ row }">
+          <el-tag v-if="row.runnerAppeal" round size="small" type="warning">已申诉</el-tag>
+          <span v-else style="color: var(--color-text-tertiary); font-size: 12px;">-</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="createTime" label="提交时间" width="170" />
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
@@ -47,6 +56,15 @@
         <div class="detail-row"><span>标题</span><span>{{ currentFb.title }}</span></div>
         <div class="detail-row"><span>内容</span><span>{{ currentFb.content }}</span></div>
         <div class="detail-row"><span>用户</span><span>{{ currentFb.userName }}</span></div>
+        <div v-if="currentFb.runnerName" class="detail-row"><span>接单员</span><span>{{ currentFb.runnerName }}</span></div>
+        <div v-if="currentFb.taskTitle" class="detail-row"><span>关联任务</span><span>{{ currentFb.taskTitle }}</span></div>
+
+        <!-- 接单员申诉内容 -->
+        <div v-if="currentFb.runnerAppeal" class="appeal-block">
+          <div class="appeal-label">📋 接单员申诉</div>
+          <div class="appeal-content">{{ currentFb.runnerAppeal }}</div>
+          <div class="appeal-time">申诉时间：{{ currentFb.appealTime }}</div>
+        </div>
       </div>
       <el-form :model="replyForm" label-position="top">
         <el-form-item label="回复内容">
@@ -112,6 +130,31 @@ const handleReply = async () => {
 .filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; padding: 16px 20px; flex-wrap: wrap; }
 .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-light); font-size: 14px; }
 .detail-row span:first-child { color: var(--color-text-secondary); min-width: 60px; }
+
+/* 申诉区块 */
+.appeal-block {
+  margin-top: 16px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(230, 162, 60, 0.08), rgba(230, 162, 60, 0.04));
+  border: 1px solid rgba(230, 162, 60, 0.2);
+  border-radius: 8px;
+}
+.appeal-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-warning, #e6a23c);
+  margin-bottom: 8px;
+}
+.appeal-content {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+.appeal-time {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
 
 @media (max-width: 768px) {
   .filter-bar { padding: 12px 14px; gap: 8px; }

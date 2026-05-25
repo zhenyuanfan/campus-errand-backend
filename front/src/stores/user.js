@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', () => {
     const isLoggedIn = computed(() => !!loginUser.value)
     const isAdmin = computed(() => loginUser.value?.userRole === 'admin')
     const isRunner = computed(() => loginUser.value?.userRole === 'runner')
+    const isPublisher = computed(() => loginUser.value?.userRole === 'publisher' || loginUser.value?.userRole === 'user')
 
     async function fetchLoginUser() {
         try {
@@ -30,5 +31,5 @@ export const useUserStore = defineStore('user', () => {
         loginUser.value = user
     }
 
-    return { loginUser, isLoggedIn, isAdmin, isRunner, fetchLoginUser, logout, setLoginUser }
+    return { loginUser, isLoggedIn, isAdmin, isRunner, isPublisher, fetchLoginUser, logout, setLoginUser }
 })

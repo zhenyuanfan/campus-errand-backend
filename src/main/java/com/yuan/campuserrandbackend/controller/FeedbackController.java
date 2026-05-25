@@ -6,6 +6,7 @@ import com.yuan.campuserrandbackend.common.ResultUtils;
 import com.yuan.campuserrandbackend.exception.ErrorCode;
 import com.yuan.campuserrandbackend.exception.ThrowUtils;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackAddRequest;
+import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackAppealRequest;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackQueryRequest;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackReplyRequest;
 import com.yuan.campuserrandbackend.model.entity.User;
@@ -95,6 +96,35 @@ public class FeedbackController {
         if (result) {
             operationLogService.addLog(loginUser.getId(), "REPLY_FEEDBACK",
                     "处理反馈，反馈ID: " + feedbackReplyRequest.getFeedbackId());
+        }
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 接单员查看相关投诉
+     */
+    @PostMapping("/runner/list/page/vo")
+    public BaseResponse<Page<FeedbackVO>> listRunnerFeedbacks(@RequestBody FeedbackQueryRequest feedbackQueryRequest,
+            HttpServletRequest request) {
+        ThrowUtils.throwIf(feedbackQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        long size = feedbackQueryRequest.getPageSize();
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR, "每页数量不能超过20");
+        Page<FeedbackVO> feedbackPage = feedbackService.listRunnerFeedbacks(feedbackQueryRequest, request);
+        return ResultUtils.success(feedbackPage);
+    }
+
+    /**
+     * 接单员提交申诉
+     */
+    @PostMapping("/runner/appeal")
+    public BaseResponse<Boolean> appealFeedback(@RequestBody FeedbackAppealRequest feedbackAppealRequest,
+            HttpServletRequest request) {
+        ThrowUtils.throwIf(feedbackAppealRequest == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        boolean result = feedbackService.appealFeedback(feedbackAppealRequest, request);
+        if (result) {
+            operationLogService.addLog(loginUser.getId(), "SUBMIT_APPEAL",
+                    "提交申诉，反馈ID: " + feedbackAppealRequest.getFeedbackId());
         }
         return ResultUtils.success(result);
     }

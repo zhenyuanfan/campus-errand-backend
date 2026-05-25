@@ -3,10 +3,7 @@
     <h1 class="page-title">评价中心</h1>
     <p class="page-subtitle">管理评价和查看评价统计</p>
 
-    <div class="tab-switch">
-      <button :class="['tab-btn', { active: tab === 'my' }]" @click="tab = 'my'; loadData()">我的评价</button>
-      <button :class="['tab-btn', { active: tab === 'received' }]" @click="tab = 'received'; loadData()">收到的评价</button>
-    </div>
+
 
     <!-- 评价列表 -->
     <div v-if="reviews.length" class="review-list">
@@ -21,6 +18,17 @@
           </div>
           <el-rate :model-value="review.score" disabled show-score text-color="#ff9f0a" />
         </div>
+        
+        <!-- 新增：任务与骑手信息展示 -->
+        <div class="review-task-info">
+          <span class="task-badge" @click="$router.push(`/task/${review.taskId}`)">
+            🛍️ {{ review.taskTitle || `任务 #${review.taskId}` }}
+          </span>
+          <span v-if="tab === 'my' && review.runnerName" class="runner-badge">
+            🚴 骑手: {{ review.runnerName }}
+          </span>
+        </div>
+
         <p class="review-content">{{ review.content }}</p>
         <div v-if="review.tags" class="review-tags">
           <el-tag v-for="tag in (review.tags || '').split(',')" :key="tag" size="small" round type="info">{{ tag }}</el-tag>
@@ -48,9 +56,27 @@
     <!-- 提交评价弹窗 -->
     <el-dialog v-model="showAdd" title="提交评价" width="500px">
       <el-form :model="addForm" label-position="top">
-        <el-form-item label="任务">
-          <el-input :model-value="addForm.taskId ? `任务 #${addForm.taskId}` : ''" disabled v-if="addForm.taskId" />
-          <el-input-number v-else v-model="addForm.taskId" :min="1" style="width: 100%" placeholder="输入任务ID" />
+        <el-form-item label="选择任务">
+          <el-select
+            v-model="addForm.taskId"
+            placeholder="请选择已完成的任务"
+            style="width: 100%"
+            :disabled="!!route.query.taskId"
+            :loading="loadingTasks"
+          >
+            <el-option
+              v-for="task in completedTasks"
+              :key="task.id"
+              :label="task.title"
+              :value="task.id"
+            >
+              <span>{{ task.title }}</span>
+              <span style="float: right; color: var(--color-text-tertiary); font-size: 12px;">¥{{ task.reward }}</span>
+            </el-option>
+          </el-select>
+          <div v-if="!loadingTasks && !completedTasks.length" style="font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px;">
+            暂无可评价的已完成任务
+          </div>
         </el-form-item>
         <el-form-item label="评分">
           <el-rate v-model="addForm.score" show-score text-color="#ff9f0a" />
@@ -68,7 +94,7 @@
       </template>
     </el-dialog>
 
-    <el-button type="primary" round class="fab" @click="showAdd = true">
+    <el-button v-if="!userStore.isRunner" type="primary" round class="fab" @click="openAddDialog">
       <el-icon><Edit /></el-icon>写评价
     </el-button>
   </div>
@@ -77,12 +103,16 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { listMyReviews, listReceivedReviews, addReview, addReviewReply } from '@/api/review'
+import { listMyPublishedOrders } from '@/api/order'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
+const userStore = useUserStore()
 
-const tab = ref('my')
+// 发布员/普通用户看"我的评价"，接单员看"收到的评价"
+const tab = ref(userStore.isRunner ? 'received' : 'my')
 const query = ref({ current: 1, pageSize: 10 })
 const reviews = ref([])
 const total = ref(0)
@@ -91,6 +121,8 @@ const submitting = ref(false)
 const replyContent = reactive({})
 const replyingId = ref(null)
 const addForm = ref({ taskId: null, score: 5, content: '', tags: '' })
+const completedTasks = ref([])
+const loadingTasks = ref(false)
 
 const loadData = async () => {
   const fn = tab.value === 'my' ? listMyReviews : listReceivedReviews
@@ -98,12 +130,27 @@ const loadData = async () => {
   reviews.value = res.records || []
   total.value = res.total || 0
 }
+// 加载已完成的任务列表（供评价选择）
+const fetchCompletedTasks = async () => {
+  loadingTasks.value = true
+  try {
+    const res = await listMyPublishedOrders({ current: 1, pageSize: 20, status: 'completed' })
+    completedTasks.value = res.records || []
+  } catch { /* ignore */ }
+  finally { loadingTasks.value = false }
+}
+
+const openAddDialog = async () => {
+  await fetchCompletedTasks()
+  showAdd.value = true
+}
+
 onMounted(() => {
   loadData()
   // 从订单详情跳过来时自动打开写评价弹窗
   if (route.query.taskId) {
-    addForm.value.taskId = Number(route.query.taskId)
-    showAdd.value = true
+    addForm.value.taskId = route.query.taskId
+    openAddDialog()
   }
 })
 
@@ -140,6 +187,9 @@ const handleReply = async (reviewId) => {
 .review-user { display: flex; gap: 10px; align-items: center; }
 .reviewer-name { font-weight: 600; font-size: 14px; display: block; }
 .review-time { font-size: 12px; color: var(--color-text-tertiary); }
+.review-task-info { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+.task-badge, .runner-badge { font-size: 13px; padding: 4px 10px; background: var(--color-bg-hover, #f5f5f7); border-radius: 6px; color: var(--color-text-secondary); cursor: pointer; transition: background 0.2s; }
+.task-badge:hover { background: #e8e8eb; color: var(--color-primary); }
 .review-content { font-size: 14px; line-height: 1.7; color: var(--color-text-secondary); margin-bottom: 10px; }
 .review-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .review-reply { background: var(--color-bg-hover); border-radius: var(--radius-md); padding: 12px; display: flex; gap: 10px; margin-top: 8px; }

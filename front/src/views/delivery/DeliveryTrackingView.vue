@@ -116,11 +116,18 @@ const isTaskRunner = computed(() => {
 
 // 美团风格的状态信息
 const statusEmoji = computed(() => {
+  if (taskInfo.value?.status === 'completed') return '✅'
+  if (taskInfo.value?.status === 'confirmed') return '✅'
+  if (taskInfo.value?.status === 'cancelled') return '❌'
   const latest = trackingList.value[0]
   const map = { picked_up: '📦', delivering: '🚴', arrived: '📍', completed: '✅', location_update: '🚴' }
   return map[latest?.status] || '⏳'
 })
 const latestStatusText = computed(() => {
+  if (taskInfo.value?.status === 'completed') return '订单已完成'
+  if (taskInfo.value?.status === 'confirmed') return '物品已送达，待确认'
+  if (taskInfo.value?.status === 'cancelled') return '订单已取消'
+  
   const latest = trackingList.value[0]
   if (!latest) {
     return taskInfo.value?.status === 'in_progress' ? '骑手正在前往取件' : '等待骑手接单'
@@ -169,6 +176,24 @@ const initMap = () => {
     center: [116.397428, 39.90923],
     mapStyle: 'amap://styles/whitesmoke'
   })
+  
+  // 注入定位控件：如果没有轨迹点，默认定位到用户当前位置
+  window.AMap.plugin('AMap.Geolocation', () => {
+    const geolocation = new window.AMap.Geolocation({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      buttonPosition: 'RB',
+      buttonOffset: new window.AMap.Pixel(10, 20),
+      zoomToAccuracy: true
+    })
+    map.addControl(geolocation)
+    
+    const points = trackingList.value.filter(item => item.longitude && item.latitude)
+    if (points.length === 0) {
+      geolocation.getCurrentPosition()
+    }
+  })
+
   updateMapMarkers()
 }
 

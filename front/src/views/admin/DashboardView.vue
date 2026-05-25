@@ -122,33 +122,38 @@ onMounted(async () => {
 
   // 任务类型饼图
   if (taskData?.typeDistribution) {
-    makePie(taskTypePie.value, taskData.typeDistribution.map(i => ({ name: i.name, value: i.value })))
+    makePie(taskTypePie.value, Object.entries(taskData.typeDistribution).map(([name, value]) => ({ name, value })))
   }
   // 任务状态饼图
   if (taskData?.statusDistribution) {
-    makePie(taskStatusPie.value, taskData.statusDistribution.map(i => ({ name: i.name, value: i.value })))
+    makePie(taskStatusPie.value, Object.entries(taskData.statusDistribution).map(([name, value]) => ({ name, value })))
   }
   // 完成率趋势
-  if (taskData?.completionRateTrend) {
+  if (taskData?.dailyTaskCounts && taskData?.dailyCompletedCounts) {
+    const trend = taskData.dailyTaskCounts.map(t => {
+      const completed = taskData.dailyCompletedCounts.find(c => c.date === t.date)?.count || 0
+      const rate = t.count > 0 ? ((completed / t.count) * 100).toFixed(1) : 0
+      return { date: t.date, value: parseFloat(rate) }
+    })
     makeLine(completionLine.value,
-      taskData.completionRateTrend.map(i => i.date),
-      taskData.completionRateTrend.map(i => i.value), '完成率')
+      trend.map(i => i.date),
+      trend.map(i => i.value), '完成率 (%)')
   }
   // 用户角色分布
   if (userData?.roleDistribution) {
-    makePie(userRolePie.value, userData.roleDistribution.map(i => ({ name: i.name, value: i.value })))
+    makePie(userRolePie.value, Object.entries(userData.roleDistribution).map(([name, value]) => ({ name, value })))
   }
   // 跑腿人员排行
-  if (runnerData?.topByOrders) {
+  if (runnerData?.topRunnersByOrders) {
     makeBar(runnerBar.value,
-      runnerData.topByOrders.map(i => i.name),
-      runnerData.topByOrders.map(i => i.value), '接单数')
+      runnerData.topRunnersByOrders.map(i => i.runnerName),
+      runnerData.topRunnersByOrders.map(i => i.orderCount), '接单数')
   }
   // 新增用户趋势
   if (userData?.dailyNewUsers) {
     makeLine(newUserLine.value,
       userData.dailyNewUsers.map(i => i.date),
-      userData.dailyNewUsers.map(i => i.value), '新增用户')
+      userData.dailyNewUsers.map(i => i.count), '新增用户')
   }
 })
 </script>

@@ -8,6 +8,7 @@ import com.yuan.campuserrandbackend.exception.BusinessException;
 import com.yuan.campuserrandbackend.exception.ErrorCode;
 import com.yuan.campuserrandbackend.mapper.FeedbackMapper;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackAddRequest;
+import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackAppealRequest;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackQueryRequest;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackReplyRequest;
 import com.yuan.campuserrandbackend.model.entity.Feedback;
@@ -119,9 +120,18 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback>
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "反馈不存在");
         }
 
-        // 权限校验：本人或管理员可查看
+        // 权限校验：本人、管理员、或关联任务的接单员可查看
         User loginUser = userService.getLoginUser(request);
-        if (!feedback.getUserId().equals(loginUser.getId()) && !"admin".equals(loginUser.getUserRole())) {
+        boolean isOwner = feedback.getUserId().equals(loginUser.getId());
+        boolean isAdmin = "admin".equals(loginUser.getUserRole());
+        boolean isRelatedRunner = false;
+        if (feedback.getTaskId() != null && feedback.getTaskId() > 0) {
+            Task task = taskService.getById(feedback.getTaskId());
+            if (task != null && loginUser.getId().equals(task.getRunnerId())) {
+                isRelatedRunner = true;
+            }
+        }
+        if (!isOwner && !isAdmin && !isRelatedRunner) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权查看该反馈");
         }
 
@@ -268,16 +278,130 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback>
             }
         }
 
-        // 设置关联任务标题
+        // 设置关联任务标题和接单员名称
         Long taskId = feedback.getTaskId();
         if (taskId != null && taskId > 0) {
             Task task = taskService.getById(taskId);
             if (task != null) {
                 feedbackVO.setTaskTitle(task.getTitle());
+                // 设置被投诉的接单员名称
+                if (task.getRunnerId() != null && task.getRunnerId() > 0) {
+                    User runner = userService.getById(task.getRunnerId());
+                    if (runner != null) {
+                        feedbackVO.setRunnerName(runner.getUserName());
+                    }
+                }
             }
         }
 
         return feedbackVO;
+    }
+
+    @Override
+    public Page<FeedbackVO> listRunnerFeedbacks(FeedbackQueryRequest feedbackQueryRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        long current = feedbackQueryRequest.getCurrent();
+        long size = feedbackQueryRequest.getPageSize();
+
+        // 查询当前用户作为接单员的所有任务ID
+        QueryWrapper<Task> taskQueryWrapper = new QueryWrapper<>();
+        taskQueryWrapper.eq("runnerId", loginUser.getId());
+        taskQueryWrapper.select("id");
+        List<Long> taskIds = taskService.list(taskQueryWrapper).stream()
+                .map(Task::getId)
+                .collect(Collectors.toList());
+
+        if (taskIds.isEmpty()) {
+            // 没有接单记录，返回空页面
+            return new Page<>(current, size, 0);
+        }
+
+        // 查询关联这些任务的投诉类型反馈
+        QueryWrapper<Feedback> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("taskId", taskIds);
+        queryWrapper.eq("type", "complaint");
+
+        // 额外筛选条件
+        String status = feedbackQueryRequest.getStatus();
+        if (StrUtil.isNotBlank(status)) {
+            queryWrapper.eq("status", status);
+        }
+        queryWrapper.orderByDesc("createTime");
+
+        Page<Feedback> feedbackPage = this.page(new Page<>(current, size), queryWrapper);
+        return convertToVOPage(feedbackPage, current, size);
+    }
+
+    @Override
+    public boolean appealFeedback(FeedbackAppealRequest feedbackAppealRequest, HttpServletRequest request) {
+        if (feedbackAppealRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        Long feedbackId = feedbackAppealRequest.getFeedbackId();
+        String runnerAppeal = feedbackAppealRequest.getRunnerAppeal();
+
+        // 参数校验
+        if (feedbackId == null || feedbackId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "反馈id不合法");
+        }
+        if (StrUtil.isBlank(runnerAppeal)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "申诉内容不能为空");
+        }
+        if (runnerAppeal.length() > 1000) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "申诉内容过长，最多1000字");
+        }
+
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+
+        // 查询反馈
+        Feedback feedback = this.getById(feedbackId);
+        if (feedback == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "反馈不存在");
+        }
+
+        // 校验反馈类型必须是投诉
+        if (!"complaint".equals(feedback.getType())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "只能对投诉类型的反馈进行申诉");
+        }
+
+        // 校验关联任务的接单员是否为当前用户
+        Long taskId = feedback.getTaskId();
+        if (taskId == null || taskId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该反馈未关联任务，无法申诉");
+        }
+        Task task = taskService.getById(taskId);
+        if (task == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "关联的任务不存在");
+        }
+        if (!loginUser.getId().equals(task.getRunnerId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "你不是该任务的接单员，无权申诉");
+        }
+
+        // 校验是否已经申诉过
+        if (StrUtil.isNotBlank(feedback.getRunnerAppeal())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该投诉已经申诉过，不能重复申诉");
+        }
+
+        // 更新申诉内容
+        Feedback updateFeedback = new Feedback();
+        updateFeedback.setId(feedbackId);
+        updateFeedback.setRunnerAppeal(runnerAppeal);
+        updateFeedback.setAppealTime(new Date());
+
+        boolean result = this.updateById(updateFeedback);
+        if (!result) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "申诉失败，数据库错误");
+        }
+
+        // 通知发布者：接单员已申诉
+        messageService.sendToUser(feedback.getUserId(),
+                "接单员已对你的投诉进行申诉",
+                "你提交的投诉「" + feedback.getTitle() + "」已被接单员申诉，请关注处理进展。",
+                "FEEDBACK_APPEAL");
+
+        return true;
     }
 
     /**

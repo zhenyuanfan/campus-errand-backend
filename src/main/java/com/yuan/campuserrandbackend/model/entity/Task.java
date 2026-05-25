@@ -70,9 +70,14 @@ public class Task implements Serializable {
     private BigDecimal reward;
 
     /**
-     * 任务状态：pending-待接单/accepted-已接单/in_progress-进行中/completed-已完成/cancelled-已取消
+     * 任务状态：pending-待接单/accepted-已接单/in_progress-进行中/confirmed-待确认/completed-已完成/cancelled-已取消
      */
     private String status;
+
+    /**
+     * 支付状态：unpaid-未支付/paid-已支付(冻结)/released-已放款/refunded-已退款
+     */
+    private String paymentStatus;
 
     /**
      * 联系方式

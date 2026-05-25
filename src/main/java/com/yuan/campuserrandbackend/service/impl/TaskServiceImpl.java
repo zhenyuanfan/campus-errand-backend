@@ -12,6 +12,7 @@ import com.yuan.campuserrandbackend.model.dto.task.TaskQueryRequest;
 import com.yuan.campuserrandbackend.model.dto.task.TaskUpdateRequest;
 import com.yuan.campuserrandbackend.model.entity.Task;
 import com.yuan.campuserrandbackend.model.entity.User;
+import com.yuan.campuserrandbackend.model.enums.PaymentStatusEnum;
 import com.yuan.campuserrandbackend.model.enums.TaskStatusEnum;
 import com.yuan.campuserrandbackend.model.enums.TaskTypeEnum;
 import com.yuan.campuserrandbackend.model.vo.TaskVO;
@@ -19,6 +20,7 @@ import com.yuan.campuserrandbackend.service.TaskService;
 import com.yuan.campuserrandbackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -39,6 +41,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task>
     private UserService userService;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public long addTask(TaskAddRequest taskAddRequest, HttpServletRequest request) {
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
@@ -56,6 +59,23 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task>
 
         // 校验任务信息
         validTask(task, true);
+
+        // === 担保交易：冻结发布者余额 ===
+        BigDecimal reward = task.getReward();
+        // 重新查询用户，获取最新余额
+        User freshUser = userService.getById(loginUser.getId());
+        BigDecimal balance = freshUser.getBalance() != null ? freshUser.getBalance() : BigDecimal.ZERO;
+        if (balance.compareTo(reward) < 0) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "余额不足，当前余额：" + balance + "元，需要：" + reward + "元");
+        }
+        // 扣减余额
+        User updateUser = new User();
+        updateUser.setId(loginUser.getId());
+        updateUser.setBalance(balance.subtract(reward));
+        userService.updateById(updateUser);
+
+        // 设置支付状态为已支付（冻结）
+        task.setPaymentStatus(PaymentStatusEnum.PAID.getValue());
 
         // 保存任务
         boolean result = this.save(task);
@@ -263,6 +283,13 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task>
             taskVO.setStatusText(taskStatusEnum.getText());
         }
 
+        // 设置支付状态文本
+        PaymentStatusEnum paymentStatusEnum = PaymentStatusEnum.getEnumByValue(task.getPaymentStatus());
+        if (paymentStatusEnum != null) {
+            taskVO.setPaymentStatus(task.getPaymentStatus());
+            taskVO.setPaymentStatusText(paymentStatusEnum.getText());
+        }
+
         // 设置发布者信息
         Long publisherId = task.getPublisherId();
         if (publisherId != null && publisherId > 0) {
@@ -299,6 +326,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean cancelTask(long taskId, HttpServletRequest request) {
         if (taskId <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "任务id不合法");
@@ -323,10 +351,23 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task>
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "只有待接单或已接单状态的任务可以取消");
         }
 
-        // 更新状态为已取消
+        // === 担保交易：退回冻结金额 ===
+        if (PaymentStatusEnum.PAID.getValue().equals(task.getPaymentStatus())) {
+            User publisher = userService.getById(task.getPublisherId());
+            if (publisher != null) {
+                BigDecimal currentBalance = publisher.getBalance() != null ? publisher.getBalance() : BigDecimal.ZERO;
+                User updateUser = new User();
+                updateUser.setId(publisher.getId());
+                updateUser.setBalance(currentBalance.add(task.getReward()));
+                userService.updateById(updateUser);
+            }
+        }
+
+        // 更新状态为已取消，支付状态为已退款
         Task updateTask = new Task();
         updateTask.setId(taskId);
         updateTask.setStatus(TaskStatusEnum.CANCELLED.getValue());
+        updateTask.setPaymentStatus(PaymentStatusEnum.REFUNDED.getValue());
         return this.updateById(updateTask);
     }
 }

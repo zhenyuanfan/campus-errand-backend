@@ -12,12 +12,14 @@ import com.yuan.campuserrandbackend.model.entity.Task;
 import com.yuan.campuserrandbackend.model.entity.TaskReview;
 import com.yuan.campuserrandbackend.model.entity.User;
 import com.yuan.campuserrandbackend.model.enums.DeliveryStatusEnum;
+import com.yuan.campuserrandbackend.model.enums.PaymentStatusEnum;
 import com.yuan.campuserrandbackend.model.enums.TaskStatusEnum;
 import com.yuan.campuserrandbackend.model.enums.TaskTypeEnum;
 import com.yuan.campuserrandbackend.model.vo.OrderDetailVO;
 import com.yuan.campuserrandbackend.model.vo.TaskVO;
 import com.yuan.campuserrandbackend.service.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -41,6 +43,9 @@ public class OrderManagementServiceImpl implements OrderManagementService {
 
     @Resource
     private DeliveryTrackingMapper deliveryTrackingMapper;
+
+    @Resource
+    private MessageService messageService;
 
     @Override
     public OrderDetailVO getOrderDetail(long taskId) {
@@ -69,6 +74,13 @@ public class OrderManagementServiceImpl implements OrderManagementService {
         orderDetailVO.setExpectedTime(task.getExpectedTime());
         orderDetailVO.setCreateTime(task.getCreateTime());
         orderDetailVO.setTaskStatus(task.getStatus());
+
+        // 支付状态
+        orderDetailVO.setPaymentStatus(task.getPaymentStatus());
+        PaymentStatusEnum paymentStatusEnum = PaymentStatusEnum.getEnumByValue(task.getPaymentStatus());
+        if (paymentStatusEnum != null) {
+            orderDetailVO.setPaymentStatusText(paymentStatusEnum.getText());
+        }
 
         // 任务类型文本
         TaskTypeEnum taskTypeEnum = TaskTypeEnum.getEnumByValue(task.getTaskType());
@@ -230,5 +242,60 @@ public class OrderManagementServiceImpl implements OrderManagementService {
         }
 
         return queryWrapper;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean confirmOrder(long taskId, HttpServletRequest request) {
+        if (taskId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "任务id不合法");
+        }
+
+        // 查询任务
+        Task task = taskService.getById(taskId);
+        if (task == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "任务不存在");
+        }
+
+        // 校验权限：只有发布者可以确认收货
+        User loginUser = userService.getLoginUser(request);
+        if (!task.getPublisherId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "只有任务发布者可以确认收货");
+        }
+
+        // 校验任务状态：只有待确认状态可以确认
+        if (!TaskStatusEnum.CONFIRMED.getValue().equals(task.getStatus())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "只有待确认状态的订单可以确认收货");
+        }
+
+        // === 担保交易：放款给接单员 ===
+        Long runnerId = task.getRunnerId();
+        if (runnerId != null && runnerId > 0) {
+            User runner = userService.getById(runnerId);
+            if (runner != null) {
+                BigDecimal runnerBalance = runner.getBalance() != null ? runner.getBalance() : BigDecimal.ZERO;
+                User updateRunner = new User();
+                updateRunner.setId(runnerId);
+                updateRunner.setBalance(runnerBalance.add(task.getReward()));
+                userService.updateById(updateRunner);
+            }
+        }
+
+        // 更新任务状态为已完成，支付状态为已放款
+        Task updateTask = new Task();
+        updateTask.setId(taskId);
+        updateTask.setStatus(TaskStatusEnum.COMPLETED.getValue());
+        updateTask.setPaymentStatus(PaymentStatusEnum.RELEASED.getValue());
+        boolean result = taskService.updateById(updateTask);
+
+        // 通知接单员：报酬已到账
+        if (result && runnerId != null && runnerId > 0) {
+            messageService.sendToUser(runnerId,
+                    "报酬已到账",
+                    "您完成的任务「" + task.getTitle() + "」已被发布者确认收货，报酬" + task.getReward() + "元已转入您的账户。",
+                    "PAYMENT_RELEASED");
+        }
+
+        return result;
     }
 }

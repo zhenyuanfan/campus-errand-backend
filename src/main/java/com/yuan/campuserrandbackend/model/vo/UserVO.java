@@ -3,6 +3,7 @@ package com.yuan.campuserrandbackend.model.vo;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -26,6 +27,8 @@ public class UserVO implements Serializable {
     private String contactInfo;
 
     private Double creditScore;
+
+    private BigDecimal balance;
 
     private Integer orderCount;
 

@@ -94,7 +94,7 @@
           <router-link v-if="!userStore.isAdmin" to="/reviews" class="drawer-link" @click="drawerOpen = false">
             <el-icon><Star /></el-icon> 评价中心
           </router-link>
-          <router-link v-if="!userStore.isAdmin" to="/task/publish" class="drawer-link drawer-link-primary" @click="drawerOpen = false">
+          <router-link v-if="userStore.isPublisher" to="/task/publish" class="drawer-link drawer-link-primary" @click="drawerOpen = false">
             <el-icon><Edit /></el-icon> 发布任务
           </router-link>
 

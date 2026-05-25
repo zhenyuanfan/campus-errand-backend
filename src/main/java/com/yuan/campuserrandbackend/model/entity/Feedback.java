@@ -74,6 +74,16 @@ public class Feedback implements Serializable {
     private Date replyTime;
 
     /**
+     * 接单员申诉内容
+     */
+    private String runnerAppeal;
+
+    /**
+     * 申诉时间
+     */
+    private Date appealTime;
+
+    /**
      * 创建时间
      */
     private Date createTime;

@@ -14,6 +14,7 @@ create table if not exists user
     isDelete     tinyint      default 0                 not null comment '是否删除',
     contactInfo  varchar(255)                           null comment '联系方式',
     creditScore  double       default 100.0             null comment '信誉评分',
+    balance      decimal(10,2) default 1000.00          null comment '账户余额',
     orderCount   int          default 0                 null comment '接单数量',
     UNIQUE KEY uk_userAccount (userAccount),
     INDEX idx_userName (userName),
@@ -62,7 +63,8 @@ create table if not exists task
     endLocation    varchar(512)                            not null comment '目的地',
     expectedTime   datetime                                not null comment '期望完成时间',
     reward         decimal(10, 2)                          not null comment '报酬金额',
-    status         varchar(64)  default 'pending'          not null comment '任务状态：pending-待接单/accepted-已接单/in_progress-进行中/completed-已完成/cancelled-已取消',
+    status         varchar(64)  default 'pending'          not null comment '任务状态：pending-待接单/accepted-已接单/in_progress-进行中/confirmed-待确认/completed-已完成/cancelled-已取消',
+    paymentStatus  varchar(64)  default 'unpaid'           not null comment '支付状态：unpaid-未支付/paid-已支付(冻结)/released-已放款/refunded-已退款',
     contactInfo    varchar(255)                            not null comment '联系方式',
     remark         varchar(1024)                           null comment '备注',
     createTime     datetime     default CURRENT_TIMESTAMP  not null comment '创建时间',
@@ -122,6 +124,8 @@ create table if not exists feedback
     adminId     bigint                              null comment '处理人id（管理员）',
     adminReply  text                                null comment '管理员回复内容',
     replyTime   datetime                            null comment '回复时间',
+    runnerAppeal text                               null comment '接单员申诉内容',
+    appealTime  datetime                            null comment '申诉时间',
     createTime  datetime default CURRENT_TIMESTAMP  not null comment '创建时间',
     updateTime  datetime default CURRENT_TIMESTAMP  not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete    tinyint  default 0                  not null comment '是否删除',
@@ -130,3 +134,9 @@ create table if not exists feedback
     index idx_status (status),
     index idx_createTime (createTime)
 ) comment '用户反馈' collate = utf8mb4_unicode_ci;
+
+ALTER TABLE feedback
+    ADD COLUMN runnerAppeal text NULL COMMENT '接单员申诉内容',
+    ADD COLUMN appealTime datetime NULL COMMENT '申诉时间';
+ALTER TABLE user ADD COLUMN balance decimal(10,2) DEFAULT 1000.00 COMMENT '账户余额';
+ALTER TABLE task ADD COLUMN paymentStatus varchar(64) DEFAULT 'unpaid' COMMENT '支付状态：unpaid-未支付/paid-已支付(冻结)/released-已放款/refunded-已退款';

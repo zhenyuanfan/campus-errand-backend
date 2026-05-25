@@ -84,6 +84,16 @@ public class OrderDetailVO implements Serializable {
      */
     private Date createTime;
 
+    /**
+     * 支付状态
+     */
+    private String paymentStatus;
+
+    /**
+     * 支付状态文本
+     */
+    private String paymentStatusText;
+
     // ========== 发布者信息 ==========
 
     /**

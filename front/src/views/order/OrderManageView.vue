@@ -3,15 +3,7 @@
     <h1 class="page-title">我的订单</h1>
     <p class="page-subtitle">查看历史订单记录、订单详情、评价信息</p>
 
-    <!-- Tab 切换 -->
-    <div class="tab-switch">
-      <button :class="['tab-btn', { active: tab === 'published' }]" @click="switchTab('published')">
-        📋 我发布的
-      </button>
-      <button :class="['tab-btn', { active: tab === 'runner' }]" @click="switchTab('runner')">
-        🚴 我接的
-      </button>
-    </div>
+
 
     <!-- 筛选 -->
     <div class="apple-card filter-bar">
@@ -26,6 +18,7 @@
       <el-select v-model="query.status" placeholder="全部状态" clearable @change="loadData">
         <el-option label="待接单" value="pending" />
         <el-option label="进行中" value="in_progress" />
+        <el-option label="待确认" value="confirmed" />
         <el-option label="已完成" value="completed" />
         <el-option label="已取消" value="cancelled" />
       </el-select>
@@ -44,7 +37,7 @@
       <div
         v-for="order in orders"
         :key="order.id"
-        :class="['apple-card', 'order-card', { 'order-card--active': order.status === 'in_progress' }]"
+        :class="['apple-card', 'order-card', { 'order-card--active': order.status === 'in_progress', 'order-card--confirmed': order.status === 'confirmed' }]"
         @click="viewDetail(order.id)"
       >
         <!-- 卡片顶部：状态 + 报酬 -->
@@ -87,6 +80,14 @@
               @click.stop="handleCancel(order)"
             >
               取消
+            </el-button>
+            <!-- 待确认且是发布者显示确认收货按钮 -->
+            <el-button
+              v-if="tab === 'published' && order.status === 'confirmed'"
+              size="small" type="success" round
+              @click.stop="handleConfirm(order)"
+            >
+              ✅ 确认收货
             </el-button>
             <!-- 已完成且是发布者可以写评价 -->
             <el-button
@@ -136,6 +137,10 @@
         <div class="detail-row"><span>期望时间</span><span>{{ detail.expectedTime }}</span></div>
         <div class="detail-row"><span>联系方式</span><span>{{ detail.contactInfo }}</span></div>
         <div v-if="detail.remark" class="detail-row"><span>备注</span><span>{{ detail.remark }}</span></div>
+        <div class="detail-row">
+          <span>支付状态</span>
+          <el-tag :type="paymentStatusType(detail.paymentStatus)" round size="small">{{ detail.paymentStatusText || '未知' }}</el-tag>
+        </div>
         <div class="detail-row"><span>发布时间</span><span>{{ detail.createTime }}</span></div>
 
         <!-- 评价信息 -->
@@ -156,7 +161,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { listMyPublishedOrders, listMyRunnerOrders, getOrderDetail } from '@/api/order'
+import { listMyPublishedOrders, listMyRunnerOrders, getOrderDetail, confirmOrder } from '@/api/order'
 import { cancelTask } from '@/api/task'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Location } from '@element-plus/icons-vue'
@@ -164,7 +169,7 @@ import { Search, Location } from '@element-plus/icons-vue'
 const router = useRouter()
 const userStore = useUserStore()
 
-// 接单员默认显示"我接的"，普通用户显示"我发布的"
+// 发布员/普通用户只看"我发布的"，接单员只看"我接的"
 const tab = ref(userStore.isRunner ? 'runner' : 'published')
 const query = ref({ current: 1, pageSize: 10, keyword: '', status: '' })
 const orders = ref([])
@@ -184,8 +189,8 @@ const switchTab = (t) => {
   loadData()
 }
 
-// 状态优先级：进行中 > 待接单 > 已完成 > 已取消
-const STATUS_PRIORITY = { in_progress: 0, pending: 1, completed: 2, cancelled: 3 }
+// 状态优先级：待确认 > 进行中 > 待接单 > 已完成 > 已取消
+const STATUS_PRIORITY = { confirmed: 0, in_progress: 1, pending: 2, completed: 3, cancelled: 4 }
 
 const loadData = async () => {
   loading.value = true
@@ -223,7 +228,20 @@ const goReview = (order) => {
   router.push({ path: '/reviews', query: { taskId: order.id, title: order.title } })
 }
 
-const statusType = (s) => ({ pending: 'info', accepted: '', in_progress: 'warning', completed: 'success', cancelled: 'danger' }[s] || 'info')
+const handleConfirm = async (order) => {
+  await ElMessageBox.confirm(
+    `确认已收到任务「${order.title}」的服务？确认后报酬 ¥${order.reward} 将转给接单员。`,
+    '确认收货',
+    { type: 'warning', confirmButtonText: '确认收货', cancelButtonText: '再看看' }
+  )
+  await confirmOrder(order.id)
+  ElMessage.success('确认收货成功，报酬已转给接单员')
+  loadData()
+}
+
+const statusType = (s) => ({ pending: 'info', accepted: '', in_progress: 'warning', confirmed: '', completed: 'success', cancelled: 'danger' }[s] || 'info')
+
+const paymentStatusType = (s) => ({ unpaid: 'info', paid: 'warning', released: 'success', refunded: 'danger' }[s] || 'info')
 </script>
 
 <style scoped>
@@ -284,6 +302,18 @@ const statusType = (s) => ({ pending: 'info', accepted: '', in_progress: 'warnin
   font-size: 12px;
   font-weight: 600;
   color: var(--color-warning);
+}
+
+/* 待确认订单：绿色高亮线 */
+.order-card.order-card--confirmed {
+  border-left: 4px solid var(--color-success, #67c23a) !important;
+  background: linear-gradient(135deg, rgba(103, 194, 58, 0.04) 0%, #fff 60%);
+}
+.order-card.order-card--confirmed .order-title::before {
+  content: '📦 待确认  ';
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-success, #67c23a);
 }
 
 .order-card:hover {

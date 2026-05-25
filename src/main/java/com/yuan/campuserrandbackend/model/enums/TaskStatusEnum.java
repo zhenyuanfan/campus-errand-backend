@@ -11,6 +11,7 @@ public enum TaskStatusEnum {
     PENDING("pending", "待接单"),
     ACCEPTED("accepted", "已接单"),
     IN_PROGRESS("in_progress", "进行中"),
+    CONFIRMED("confirmed", "待确认"),
     COMPLETED("completed", "已完成"),
     CANCELLED("cancelled", "已取消");
 

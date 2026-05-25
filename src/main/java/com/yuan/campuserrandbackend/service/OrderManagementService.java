@@ -37,4 +37,13 @@ public interface OrderManagementService {
      * @return 任务VO分页
      */
     Page<TaskVO> listMyRunnerOrders(OrderQueryRequest orderQueryRequest, HttpServletRequest request);
+
+    /**
+     * 确认收货（发布者确认后放款给接单员）
+     *
+     * @param taskId  任务id
+     * @param request HTTP请求
+     * @return 是否成功
+     */
+    boolean confirmOrder(long taskId, HttpServletRequest request);
 }

@@ -40,7 +40,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="报酬金额（元）" prop="reward">
-              <el-input-number v-model="form.reward" :min="0.01" :precision="2" :step="1"
+              <el-input-number v-model="form.reward" :min="1" :precision="2" :step="1"
                 style="width: 100%" controls-position="right" />
             </el-form-item>
           </el-col>

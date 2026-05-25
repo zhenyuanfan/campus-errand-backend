@@ -109,17 +109,17 @@ public class DeliveryTrackingServiceImpl extends ServiceImpl<DeliveryTrackingMap
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新配送状态失败，数据库错误");
         }
 
-        // 如果配送状态为已完成，同步更新任务状态为已完成
+        // 如果配送状态为已完成，同步更新任务状态为待确认（发布者需确认收货）
         if (DeliveryStatusEnum.COMPLETED.getValue().equals(status)) {
             Task updateTask = new Task();
             updateTask.setId(taskId);
-            updateTask.setStatus(TaskStatusEnum.COMPLETED.getValue());
+            updateTask.setStatus(TaskStatusEnum.CONFIRMED.getValue());
             taskService.updateById(updateTask);
 
-            // 通知任务发布者
+            // 通知任务发布者确认收货
             messageService.sendToUser(task.getPublisherId(),
-                    "您的任务已完成配送",
-                    "您发布的任务「" + task.getTitle() + "」已由跑腿人员「" + loginUser.getUserName() + "」完成配送。请确认并评价。",
+                    "您的任务已完成配送，请确认收货",
+                    "您发布的任务「" + task.getTitle() + "」已由跑腿人员「" + loginUser.getUserName() + "」完成配送。请尽快确认收货，报酬将在确认后转给接单员。超过3天未确认将自动放款。",
                     "DELIVERY_COMPLETED");
         } else {
             // 通知任务发布者配送进度更新

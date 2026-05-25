@@ -20,6 +20,15 @@ public interface RunnerTaskService {
     Page<TaskVO> listAvailableTasks(RunnerTaskQueryRequest runnerTaskQueryRequest);
 
     /**
+     * 获取推荐任务列表（基于接单员历史偏好排序）
+     *
+     * @param runnerTaskQueryRequest 查询请求
+     * @param runnerId              接单员id
+     * @return 推荐排序后的待接单任务VO分页
+     */
+    Page<TaskVO> listRecommendedTasks(RunnerTaskQueryRequest runnerTaskQueryRequest, Long runnerId);
+
+    /**
      * 跑腿人员接单
      *
      * @param taskId  任务id

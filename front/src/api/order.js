@@ -14,3 +14,6 @@ export const listMyPublishedOrders = (data) => request.post('/order/manage/my/li
 
 // 我接的订单（跑腿视角）
 export const listMyRunnerOrders = (data) => request.post('/order/manage/runner/list/page/vo', data)
+
+// 确认收货（发布者确认后放款）
+export const confirmOrder = (taskId) => request.post(`/order/manage/confirm/${taskId}`)

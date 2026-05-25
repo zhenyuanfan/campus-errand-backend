@@ -48,6 +48,20 @@ public class RunnerTaskController {
     }
 
     /**
+     * 个性化推荐任务列表（基于接单员历史偏好排序）
+     */
+    @PostMapping("/recommend/page/vo")
+    public BaseResponse<Page<TaskVO>> listRecommendedTasks(@RequestBody RunnerTaskQueryRequest runnerTaskQueryRequest,
+            HttpServletRequest request) {
+        ThrowUtils.throwIf(runnerTaskQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        long size = runnerTaskQueryRequest.getPageSize();
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR, "每页数量不能超过20");
+        User loginUser = userService.getLoginUser(request);
+        Page<TaskVO> taskVOPage = runnerTaskService.listRecommendedTasks(runnerTaskQueryRequest, loginUser.getId());
+        return ResultUtils.success(taskVOPage);
+    }
+
+    /**
      * 接单
      */
     @PostMapping("/accept")

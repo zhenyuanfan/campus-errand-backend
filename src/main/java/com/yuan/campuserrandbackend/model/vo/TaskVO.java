@@ -98,6 +98,16 @@ public class TaskVO implements Serializable {
     private String remark;
 
     /**
+     * 支付状态
+     */
+    private String paymentStatus;
+
+    /**
+     * 支付状态文本
+     */
+    private String paymentStatusText;
+
+    /**
      * 创建时间
      */
     private Date createTime;

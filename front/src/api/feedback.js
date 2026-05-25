@@ -14,3 +14,9 @@ export const listAllFeedback = (data) => request.post('/feedback/admin/list/page
 
 // 管理员回复
 export const adminReplyFeedback = (data) => request.post('/feedback/admin/reply', data)
+
+// 接单员查看相关投诉
+export const listRunnerFeedback = (data) => request.post('/feedback/runner/list/page/vo', data)
+
+// 接单员提交申诉
+export const appealFeedback = (data) => request.post('/feedback/runner/appeal', data)

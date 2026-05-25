@@ -3,6 +3,7 @@ package com.yuan.campuserrandbackend.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackAddRequest;
+import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackAppealRequest;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackQueryRequest;
 import com.yuan.campuserrandbackend.model.dto.feedback.FeedbackReplyRequest;
 import com.yuan.campuserrandbackend.model.entity.Feedback;
@@ -59,4 +60,22 @@ public interface FeedbackService extends IService<Feedback> {
      * @return 是否成功
      */
     boolean replyFeedback(FeedbackReplyRequest feedbackReplyRequest, HttpServletRequest request);
+
+    /**
+     * 接单员查看相关投诉列表
+     *
+     * @param feedbackQueryRequest 查询请求
+     * @param request              HTTP请求
+     * @return 反馈VO分页
+     */
+    Page<FeedbackVO> listRunnerFeedbacks(FeedbackQueryRequest feedbackQueryRequest, HttpServletRequest request);
+
+    /**
+     * 接单员提交申诉
+     *
+     * @param feedbackAppealRequest 申诉请求
+     * @param request               HTTP请求
+     * @return 是否成功
+     */
+    boolean appealFeedback(FeedbackAppealRequest feedbackAppealRequest, HttpServletRequest request);
 }
